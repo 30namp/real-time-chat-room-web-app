@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#F1F0F1] flex flex-col items-center">
+    <p id="websocket-cout" class="px-4 py-4 rounded-lg bg-white mt-12 transition">new notify here</p>
+    <div class="w-full flex items-center justify-evenly py-16">
+        <div class="w-96 h-[30rem] bg-white rounded-lg flex flex-col items-center">
+            <p class="text-sm opacity-40 mt-8">user:</p>
+            <p class="text-xl font-bold">Sinamp</p>
+
+            <button onclick="login('sinamp')" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-8">Login</button>
+            <button onclick="makeChatRoom()" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-4">make chatroom</button>
+            <button onclick="getChatrooms()" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-4">get chatrooms</button>
+            <input id="inp-1" type="text" class="bg-[#f1f0f1] rounded-lg h-12 w-10/12 text-black mt-12 outline-none text-center" value="test">
+            <button onclick="sendMessage('#inp-1')" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-4">Send Message</button>
+        </div>
+        <div class="w-96 h-[30rem] bg-white rounded-lg flex flex-col items-center">
+            <p class="text-sm opacity-40 mt-8">user:</p>
+            <p class="text-xl font-bold">Tester</p>
+
+            <button onclick="login('tester')" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-8">Login</button>
+            <button onclick="makeChatRoom()" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-4">make chatroom</button>
+            <button onclick="getChatrooms()" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-4">get chatrooms</button>
+            <input id="inp-2" type="text" class="bg-[#f1f0f1] rounded-lg h-12 w-10/12 text-black mt-12 outline-none text-center" value="test">
+            <button onclick="sendMessage('#inp-2')" class="flex justify-center items-center bg-black hover:opacity-90 active:scale-95 transition rounded-lg w-10/12 h-12 text-white mt-4">Send Message</button>
+        </div>
+    </div>
+    <button onclick="webSocketReconnect()" class="flex justify-center items-center w-80 h-12 rounded-lg bg-black hover:opacity-90 active:scale-95 text-white mt-4 transition">Reconnect</button>
+</body>
+</html>
+
+<script>
+
+let token = '';
+let password = '1234';
+
+let wssocket = new WebSocket('ws://localhost:3000/');
+makeWsReady(wssocket);
+
+function cout(msg)
+{
+    document.querySelector('#websocket-cout').innerText = msg;
+}
+
+function signup(name)
+{
+    wssocket.send(JSON.stringify({
+        type: 'signup',
+        username: name,
+        password: password
+    }));
+}
+
+function login(name)
+{
+    wssocket.send(JSON.stringify({
+        type: 'login',
+        username: name,
+        password: password
+    }));
+}
+
+function makeChatRoom()
+{
+    wssocket.send(JSON.stringify({
+        type: 'make-chatroom',
+        token: token,
+        clients: ['sinamp', 'tester']
+    }));
+}
+
+function getChatrooms()
+{
+    wssocket.send(JSON.stringify({
+        type: 'get-chatrooms',
+        token: token,
+    }));
+}
+
+function sendMessage(selectorStr)
+{
+    let selector = document.querySelector(selectorStr);
+    let msg = selector.value;
+
+    let obj = {
+        type: 'message',
+        token: token,
+        chatRoomId: 0,
+        msg: msg
+    };
+
+    console.log(obj);
+
+    wssocket.send(JSON.stringify(obj));
+}
+
+function webSocketReconnect()
+{
+    wssocket = new WebSocket('ws://localhost:3000/');
+    makeWsReady(wssocket);
+}
+
+function makeWsReady(socket)
+{
+    socket.addEventListener('open', (event) => {
+        signup('sinamp');
+        signup('tester');
+    });
+
+    socket.addEventListener('message', (event) => {
+        let data = JSON.parse(event.data);
+
+        if(typeof(data.token) !== 'undefined')
+        {
+            token = data.token;
+            cout(event.data);
+        }
+        else
+        {
+            if(data.type === 'error')
+            {
+                cout("Error: Check the console for more info");
+                console.log(data);
+            }
+            else
+            {
+                cout(event.data);
+            }
+        }
+    });
+
+    socket.addEventListener('close', (event) => {
+        
+    });
+}
+
+</script>
